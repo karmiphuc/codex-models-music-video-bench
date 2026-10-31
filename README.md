@@ -82,6 +82,9 @@ python -m unittest discover -s tests -v
 ```
 
 GitHub Actions runs the offline tests and the sample render on every push and pull request.
+On hosted runners that block unprivileged UID maps, the namespace integration
+check runs separately with runner privileges. Actual goal runs never downgrade
+isolation when a host denies namespaces.
 
 The smoke command makes a short synthetic render solely to check the encoder.
 It does not call Codex or use your music. Windows users can run the Python

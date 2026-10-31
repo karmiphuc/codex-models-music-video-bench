@@ -48,7 +48,7 @@ class IsolationTests(unittest.TestCase):
             try:
                 result = json.loads(verify_namespace(work, root / "home", auth_file=auth))
             except subprocess.CalledProcessError as error:
-                if any(s in (error.stderr or "") for s in ["Operation not permitted", "No permissions to create"]):
+                if any(s in (error.stderr or "") for s in ["Operation not permitted", "No permissions to create", "setting up uid map: Permission denied"]):
                     self.skipTest("Host kernel does not permit unprivileged namespaces; actual goal run fails closed")
                 raise AssertionError("Bubblewrap isolation check failed: " + (error.stderr or str(error))) from error
             self.assertTrue(result["filesystem_isolated"])
