@@ -1,8 +1,10 @@
 """Shared audio preparation and mechanical video checks; no model calls."""
+from contextlib import ExitStack
 import json
 import math
 from pathlib import Path
 import subprocess
+import tempfile
 import wave
 
 import numpy as np
@@ -90,16 +92,92 @@ def prepare_audio(source, target, start, duration=None, bpm=None, cues=None, dem
     return summary
 
 
-def validate_video(path, spec):
+def _audio_comparison(video, source_audio, duration_seconds, tolerance):
+    """Compare decoded PCM at offset zero, without a search that could hide drift."""
+    rate = 22050
+    result = {"passed": False, "sample_rate": rate, "comparison_offset_samples": 0,
+              "limits": {"minimum_correlation": 0.98, "maximum_relative_rms_error": 0.20,
+                         "minimum_rms_ratio": 0.90, "maximum_rms_ratio": 1.10},
+              "limitations": "AAC-tolerant comparison at zero offset, without lag or gain fitting. "
+                             "Cannot distinguish changes below these tolerances or prove perceptual sync."}
+    source_audio = Path(source_audio)
+    if not source_audio.is_file():
+        result["error"] = "Expected source audio is missing"
+        return result
+    try:
+        with tempfile.TemporaryDirectory() as temporary, ExitStack() as mappings:
+            decoded = []
+            for index, audio_path in enumerate([source_audio, video]):
+                destination = Path(temporary) / f"audio-{index}.f32"
+                call(["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-i", str(audio_path),
+                      "-map", "0:a:0", "-vn", "-ac", "1", "-ar", str(rate),
+                      "-c:a", "pcm_f32le", "-f", "f32le", str(destination)])
+                if destination.stat().st_size == 0:
+                    raise ValueError("Decoded audio contains no samples")
+                mapping = np.memmap(destination, mode="r", dtype="<f4")
+                mappings.callback(mapping._mmap.close)
+                decoded.append(mapping)
+            reference, actual = decoded
+            count = min(len(reference), len(actual))
+            sum_reference = sum_actual = power_reference = power_actual = cross_power = 0.0
+            # Bound working memory even for a long supplied track.
+            for start in range(0, count, 262144):
+                left = np.asarray(reference[start:start + 262144], dtype=np.float64)
+                right = np.asarray(actual[start:start + 262144], dtype=np.float64)
+                # Only compare common samples; AAC can pad a short final packet.
+                length = min(len(left), len(right), count - start)
+                left, right = left[:length], right[:length]
+                sum_reference += float(left.sum())
+                sum_actual += float(right.sum())
+                power_reference += float(np.dot(left, left))
+                power_actual += float(np.dot(right, right))
+                cross_power += float(np.dot(left, right))
+            reference_variance = max(0.0, power_reference - sum_reference ** 2 / count)
+            actual_variance = max(0.0, power_actual - sum_actual ** 2 / count)
+            denominator = math.sqrt(reference_variance * actual_variance)
+            correlation = ((cross_power - sum_reference * sum_actual / count) / denominator
+                           if denominator > 0 else 0.0)
+            source_rms = math.sqrt(power_reference / count)
+            output_rms = math.sqrt(power_actual / count)
+            relative_error = (math.sqrt(max(0.0, power_reference + power_actual - 2 * cross_power) /
+                                        power_reference) if power_reference > 0 else None)
+            rms_ratio = output_rms / source_rms if source_rms > 0 else None
+            sample_tolerance = math.ceil(tolerance * rate)
+            checks = {
+                "source_duration": abs(len(reference) - duration_seconds * rate) <= sample_tolerance,
+                "sample_count": abs(len(reference) - len(actual)) <= sample_tolerance,
+                "non_silent": source_rms > 1e-5 and output_rms > 1e-5 and
+                              reference_variance / count > 1e-10 and actual_variance / count > 1e-10,
+                "zero_offset_correlation": math.isfinite(correlation) and correlation >= 0.98,
+                "relative_rms_error": relative_error is not None and math.isfinite(relative_error) and relative_error <= 0.20,
+                "rms_ratio": rms_ratio is not None and math.isfinite(rms_ratio) and 0.90 <= rms_ratio <= 1.10,
+            }
+            result.update(passed=all(checks.values()), checks=checks,
+                          source_samples=len(reference), output_samples=len(actual), compared_samples=count,
+                          correlation=correlation, relative_rms_error=relative_error,
+                          source_rms=source_rms, output_rms=output_rms, rms_ratio=rms_ratio)
+    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+        result["error"] = (error.stderr if isinstance(error, subprocess.CalledProcessError) else str(error))[:1000]
+    return result
+
+
+def validate_video(path, spec, source_audio=None):
+    path = Path(path)
     try:
         info = probe(path)
     except (OSError, subprocess.CalledProcessError, json.JSONDecodeError):
         return {"passed": False, "checks": {"readable_video": False}}
     video = next((s for s in info["streams"] if s["codec_type"] == "video"), None)
     audio = next((s for s in info["streams"] if s["codec_type"] == "audio"), None)
-    duration = float((video or {}).get("duration", info["format"].get("duration", 0)))
-    numerator, denominator = (video or {}).get("avg_frame_rate", "0/1").split("/")
-    fps = float(numerator) / (float(denominator) or 1)
+    try:
+        duration = float((video or {}).get("duration", info["format"].get("duration", 0)))
+        numerator, denominator = (video or {}).get("avg_frame_rate", "0/1").split("/")
+        fps = float(numerator) / (float(denominator) or 1)
+        audio_duration = float((audio or {}).get("duration", 0))
+        video_start = float((video or {}).get("start_time", "nan"))
+        audio_start = float((audio or {}).get("start_time", "nan"))
+    except (TypeError, ValueError, KeyError):
+        return {"passed": False, "checks": {"readable_metadata": False}}
     tolerance = max(0.15, 2 / spec["fps"])
     checks = {
         "video_stream": video is not None, "audio_stream": audio is not None,
@@ -108,12 +186,33 @@ def validate_video(path, spec):
         "fps": abs(fps - spec["fps"]) < 0.01,
         "h264": bool(video and video.get("codec_name") == "h264"),
         "aac": bool(audio and audio.get("codec_name") == "aac"),
-        "audio_duration": bool(audio and abs(float(audio.get("duration", 0)) - spec["duration_seconds"]) <= tolerance),
+        "audio_duration": bool(audio and abs(audio_duration - spec["duration_seconds"]) <= tolerance),
         "yuv420p": bool(video and video.get("pix_fmt") == "yuv420p"),
+        # PCM extraction alone can discard a mux-only timestamp delay.
+        "stream_start_alignment": math.isfinite(video_start) and math.isfinite(audio_start) and
+                                  abs(video_start) <= 0.005 and abs(audio_start) <= 0.005 and
+                                  abs(video_start - audio_start) <= 0.005,
     }
+    decode_error = None
+    try:
+        call(["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-err_detect", "explode",
+              "-i", str(path), "-map", "0:v:0", "-map", "0:a:0", "-f", "null", "-"])
+        checks["full_decode"] = True
+    except (OSError, subprocess.CalledProcessError) as error:
+        checks["full_decode"] = False
+        decode_error = (error.stderr if isinstance(error, subprocess.CalledProcessError) else str(error))[:1000]
+    audio_result = _audio_comparison(path, source_audio if source_audio is not None else path.parent.parent / "audio.wav",
+                                     spec["duration_seconds"], tolerance)
+    checks["soundtrack_matches_at_zero_offset"] = audio_result["passed"]
     return {"passed": all(checks.values()), "checks": checks,
             "duration_seconds": duration, "fps": fps,
-            "limitations": "Technical metadata only; does not verify soundtrack identity, perceptual sync, visual quality or flash safety."}
+            "stream_start_times": {"video_seconds": video_start if math.isfinite(video_start) else None,
+                                   "audio_seconds": audio_start if math.isfinite(audio_start) else None,
+                                   "tolerance_seconds": 0.005},
+            "audio_comparison": audio_result, "decode_error": decode_error,
+            "limitations": "Metadata, full decode health and AAC-tolerant source audio comparison at zero offset. "
+                           "Does not certify perceptual sync, visual quality or flash safety; audio changes below "
+                           "the reported tolerances can pass."}
 
 
 def contact_sheet(video, output, count=12):

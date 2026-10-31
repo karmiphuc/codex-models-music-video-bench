@@ -170,7 +170,7 @@ scene = work/'scene.py'
 scene.write_text(scene.read_text().replace('#61dfc2', '#f1bf62'))
 subprocess.run([sys.executable, 'render.py'], cwd=work, check=True, stdout=sys.stderr)
 subprocess.run([sys.executable, 'postprocess.py'], cwd=work, check=True, stdout=sys.stderr)
-(work/'storyboard.json').write_text('[]')
+(work/'storyboard.json').write_text('[{"start":0,"end":1,"description":"Offline fixture"}]')
 (work/'output/qa.md').write_text('Simulated agent integration fixture only.')
 print(json.dumps({'type':'turn.completed','usage':{'input_tokens':10,'cached_input_tokens':2,'output_tokens':3}}))
 ''')

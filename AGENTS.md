@@ -25,3 +25,16 @@ fixture audio as the chosen song. Never invent lyrics or pretend to transcribe a
 Run `python -m unittest discover -s tests -v` for harness changes and
 `python lab.py smoke` for the real encoder path. These do not invoke a model.
 Do not edit frozen experiment seeds; create a new plan after input changes.
+
+For the user's requested run use presets/sol-astra-goal.json: Sol 6.1 medium,
+high, max, ultra; Astra high and max. All six must use isolated native goals.
+The selected Chinese track is recorded in selected-song.json. Do not replace
+it with synthetic audio if the actual audio file is unavailable. The source
+YouTube download is currently blocked; report the missing audio instead of
+claiming a music-video benchmark has run.
+
+Run `python lab.py preflight --preset sol-astra-goal` to verify each native
+model/effort and paused goal without model generation. Goal mode uses persistent
+fresh threads in Linux bubblewrap namespaces; no conversation inheritance,
+sibling reads or custom continuation/coaching prompts are allowed. This does not
+hide a model's own identity from all of its native runtime metadata.

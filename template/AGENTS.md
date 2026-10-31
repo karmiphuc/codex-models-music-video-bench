@@ -10,7 +10,9 @@ services or image/video generation APIs. Use code to create the visuals. Choose
 2D, 3D or a hybrid. Use the installed tools; do not install dependencies during a
 benchmark run. No filmed or downloaded stock footage.
 
-Write a concept and timecoded shot plan to storyboard.json. Make a short proof,
+Write storyboard.json as {"concept":"...","shots":[{"start":0,"end":1,"description":"..."}]}.
+Use numeric excerpt-relative seconds and enough shots to cover the full duration;
+the one-second example is only the schema. Make a short proof,
 inspect frames, then render the complete piece. Make at most two repair passes.
 Stop after delivering output/final.mp4, output/contact-sheet.png and output/qa.md.
 Preserve source code and mention limitations in qa.md. A playable video plus a

@@ -1,0 +1,14 @@
+{
+  "name": "sol-astra-goal",
+  "mode": "goal",
+  "isolation": "bubblewrap",
+  "goal_token_budget": 500000,
+  "conditions": [
+    {"model": "gpt-6.1-sol", "effort": "medium"},
+    {"model": "gpt-6.1-sol", "effort": "high"},
+    {"model": "gpt-6.1-sol", "effort": "max"},
+    {"model": "gpt-6.1-sol", "effort": "ultra"},
+    {"model": "gpt-6-astra", "effort": "high"},
+    {"model": "gpt-6-astra", "effort": "max"}
+  ]
+}

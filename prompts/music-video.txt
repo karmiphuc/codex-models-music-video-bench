@@ -13,7 +13,7 @@ analysis is deliberately explicit about what is measured and what is unknown.
 Do not fabricate lyrics. Plan meaningful musical accents from the available cues.
 Replace the diagnostic scene with your own visual design and purposeful ending.
 
-Save a timecoded storyboard.json, all source code, output/final.mp4,
+Save a timecoded storyboard.json using the shot schema in AGENTS.md, all source code, output/final.mp4,
 output/contact-sheet.png and output/qa.md. Meet spec.json exactly. In qa.md,
 record the frames/timestamps you inspected, technical results and any limitations.
 Make a short proof before the full export, allow at most two repair passes, and

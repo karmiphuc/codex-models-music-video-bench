@@ -13,6 +13,54 @@ reported token usage, failures and anonymous clips for human scoring.
 ready to accept a future audio file. Each song gets its own prepared inputs and
 experiment folders. Setup and verification do not launch creative model sessions.
 
+## Requested isolated goal run
+
+The `sol-astra-goal` preset has exactly these six conditions:
+
+| Model | Efforts |
+|---|---|
+| GPT-6.1-Sol | medium, high, max, ultra |
+| GPT-6-Astra | high, max |
+
+Every condition gets its own persistent native `/goal`, fresh thread, fresh
+Codex home and filesystem namespace. The runtime hides the host workspace,
+previous conversation history, global memories and sibling runs. Each model sees
+its own identical seed at `/workspace/run`; it receives no comparisons or other
+conditions' outputs. Workers cannot spawn additional model sessions. The
+controller runs conditions serially with identical limits: 500,000 goal tokens
+and at most two hours each. This is not a guarantee that a model cannot recognize
+its own identity from native metadata.
+
+This backend needs Linux **bubblewrap** (`sudo apt-get install bubblewrap`). It
+fails closed if namespaces or native goals are unavailable; it never falls back
+to weaker isolation or ordinary chat. Native goals require persistent threads,
+so this path deliberately does not use `codex exec --ephemeral`.
+
+```bash
+python lab.py discover
+python lab.py preflight --preset sol-astra-goal
+```
+
+Preflight creates separate paused native goals and checks effective model/effort
+and filesystem isolation. It does not start model turns and needs no song.
+
+The selected soundtrack is recorded in [selected-song.json](selected-song.json):
+黃小琥 Tiger Huang's [現在那邊是幾點？](https://www.youtube.com/watch?v=VDzkjosrJO4).
+YouTube media download is blocked by HTTP 403 in the current cloud environment;
+the real experiment needs a supplied audio file. Then run:
+
+```bash
+python lab.py prepare --audio "/path/to/song.m4a" --song tiger-huang-what-time-is-it-there --title "現在那邊是幾點？" --artist "黃小琥 Tiger Huang"
+python lab.py plan --song tiger-huang-what-time-is-it-there --preset sol-astra-goal
+python lab.py run --experiment EXPERIMENT --execute --total-seconds 43200
+```
+
+The real run activates and reads back the native goal, sends one identical
+TASK-only input, then lets native goal continuation work until a terminal status.
+It records the effective model/effort, raw protocol events, cumulative usage and
+final goal state. The first completed turn is not treated as a completed goal.
+No custom coaching messages are inserted between native continuation turns.
+
 ## Setup
 
 Use Python 3.11+, Git, FFmpeg/FFprobe with libx264/AAC, and a signed-in Codex CLI.
@@ -122,7 +170,7 @@ explicit model/effort settings. User config is ignored for consistent defaults;
 normal Codex authentication is retained. Custom provider configurations require
 adapting the invocation before making a new plan.
 
-Default limits are **2 hours per condition** and **8 hours per invocation**.
+Default limits are **2 hours per condition** and **12 hours per invocation**.
 Adjust with `--seconds` and `--total-seconds`. A large matrix will take multiple
 invocations. Completed conditions are skipped on resume; unstarted ones remain
 pending. `--retry-failed` creates a new attempt from the untouched seed and
@@ -133,7 +181,7 @@ No token or dollar cap is enforced. Usage is collected after a turn completes;
 usage can be absent for interrupted sessions. No automatic retries or guessed
 dollar prices are added.
 
-These folders are an experiment layout, not a security boundary against sibling
+For the ordinary `exec` backend, folders are an experiment layout, not a security boundary against sibling
 reads. Instructions prohibit reading other conditions, and Codex uses its
 workspace-write sandbox. Use separate containers or machines for stronger
 isolation. Tools/dependencies should be installed on the host before planning;
@@ -143,19 +191,27 @@ sessions are instructed not to install them or call other models.
 
 For each attempt look in `work/output/` for `final.mp4`, `contact-sheet.png` and
 `qa.md`. The harness also keeps raw JSONL events, stderr, command arguments,
-metrics and its own metadata validation. A `complete` status means the CLI
+metrics and its own validation. The host decodes the full video, compares decoded
+audio against the frozen source at zero offset with documented AAC tolerances,
+checks storyboard/PNG/QA formats, and creates a verified contact sheet from the
+actual export. A `complete` status means the CLI
 finished and required files/technical checks passed. It does not mean the video
 is visually good, the correct song was selected, or sync/accessibility was certified.
-The harness rejects an unchanged diagnostic source and any explicitly reported
-model reroute. Some CLI events do not expose server-side model identity, so the
+Audio changes within the numerical tolerances can still pass; visual beat
+alignment and creative quality require watching the video.
+Source changes are only a heuristic; even a small edit can pass that check without
+producing a good music video. Creative adequacy requires human review. Explicit
+model reroutes invalidate a condition. Some CLI events do not expose server-side model identity, so the
 requested model/effort is recorded without claiming independent identity attestation.
 
-`RESULTS.md` and `results.csv` compare conditions. `review/clip-<opaque-id>.mp4`
+`RESULTS.md` and `results.csv` compare conditions. `review/clip-<random-id>.mp4`
 provides neutral filenames; score with `review-scores.csv` and
 [docs/RUBRIC.md](docs/RUBRIC.md). Keep `blind-key.json` and the model-labeled report
 away from reviewers until scoring is complete. Visible text inside a model's own
 video could still reveal its identity. Existing human scores are preserved on
-report regeneration.
+report regeneration. Changed video bytes receive a new random ID, so retries
+cannot inherit scores from a different export. Review order uses random IDs
+instead of matrix order.
 
 Input/output/cache usage comes from `turn.completed` events. Cached input is a
 subset of input, not an extra amount to add. Costs stay blank because tokens

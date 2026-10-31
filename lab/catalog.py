@@ -107,3 +107,24 @@ def matrix(models, mode="all", selected=None, repeats=1):
                 rows.append({"model": name, "effort": effort, "repeat": repeat,
                              "hidden": model.get("hidden", False)})
     return rows
+
+
+def preset_matrix(models, conditions, repeats=1):
+    """Validate exact requested combinations, never expanding or substituting."""
+    if repeats < 1 or not conditions:
+        raise ValueError("A preset needs conditions and at least one repeat.")
+    available = {m["model"]: m for m in models}
+    rows, seen = [], set()
+    for condition in conditions:
+        model, effort = condition["model"], condition["effort"]
+        if model not in available:
+            raise ValueError(f"Preset model is not advertised: {model}")
+        advertised = {e["reasoningEffort"] for e in available[model].get("supportedReasoningEfforts", [])}
+        if effort not in advertised:
+            raise ValueError(f"Preset effort is not advertised: {model} / {effort}")
+        if (model, effort) in seen:
+            raise ValueError(f"Duplicate preset condition: {model} / {effort}")
+        seen.add((model, effort))
+        rows.extend({"model": model, "effort": effort, "repeat": n,
+                     "hidden": available[model].get("hidden", False)} for n in range(1, repeats+1))
+    return rows

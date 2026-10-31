@@ -1,7 +1,14 @@
-Prepare a code-generated music-video comparison across all coding models offered
-by this Codex installation, at every supported effort, using this repository.
-The project is reusable: the user will choose a song later. No audio is needed
-to finish setup. Do not assume the reference video's song or excerpt length.
+Use this reusable repository for code-generated music-video comparisons. Each
+song can have its own fixed-input model/effort matrix. Do not assume the reference
+video's song or excerpt length.
+
+For the currently requested execution, use preset sol-astra-goal: Sol 6.1 at
+medium/high/max/ultra and Astra at high/max, all native /goal mode in independent
+filesystem-isolated fresh sessions. The user selected the Chinese track in
+selected-song.json. Its audio is not yet available: YouTube download is blocked.
+Run the no-generation preflight now, but do not substitute demo audio. Once the
+chosen audio is supplied, use that song and the exact preset. Execution of these
+six conditions is already authorized by the user; do not ask permission again.
 
 Read AGENTS.md and README.md. Run doctor, tests and the no-model smoke check.
 Keep the setup ready for a future audio file. Do not request a soundtrack merely
