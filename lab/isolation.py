@@ -25,6 +25,8 @@ def goal_command(work, home, seconds, token_budget=500000, auth_file=None, prepa
     work, home = Path(work).resolve(), Path(home).resolve()
     if os.name != "posix":
         raise RuntimeError("This goal-isolation backend requires Linux bubblewrap.")
+    if not Path("/workspace").is_dir():
+        raise RuntimeError("The isolation mount point is missing. Create it once with `sudo mkdir -p /workspace`; no host files are overwritten.")
     if prepare:
         home.mkdir(parents=True, exist_ok=True)
         (home / ".codex").mkdir(exist_ok=True)

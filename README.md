@@ -32,6 +32,8 @@ and at most two hours each. This is not a guarantee that a model cannot recogniz
 its own identity from native metadata.
 
 This backend needs Linux **bubblewrap** (`sudo apt-get install bubblewrap`). It
+also needs an existing `/workspace` mount point (`sudo mkdir -p /workspace` if
+absent); the mount is private to each worker and hides host files there. It
 fails closed if namespaces or native goals are unavailable; it never falls back
 to weaker isolation or ordinary chat. Native goals require persistent threads,
 so this path deliberately does not use `codex exec --ephemeral`.

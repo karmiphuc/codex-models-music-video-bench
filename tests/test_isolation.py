@@ -50,7 +50,7 @@ class IsolationTests(unittest.TestCase):
             except subprocess.CalledProcessError as error:
                 if any(s in (error.stderr or "") for s in ["Operation not permitted", "No permissions to create"]):
                     self.skipTest("Host kernel does not permit unprivileged namespaces; actual goal run fails closed")
-                raise
+                raise AssertionError("Bubblewrap isolation check failed: " + (error.stderr or str(error))) from error
             self.assertTrue(result["filesystem_isolated"])
             self.assertEqual(result["cwd"], "/workspace/run")
 

@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg bubblewrap
+          sudo mkdir -p /workspace
           python -m pip install -r requirements.txt
       - name: Run offline tests without model calls
         run: python -W error::ResourceWarning -m unittest discover -s tests -v
