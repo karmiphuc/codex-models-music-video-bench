@@ -1,0 +1,20 @@
+Create an original music video for the supplied audio. Read the track title,
+artist (if known), and excerpt details from audio-map.json and spec.json.
+Aim for a finished artist release: a distinctive visual world,
+intentional pacing and either expressive choreography, a developing story, or both.
+
+Build all visuals through code. You may choose 2D, 3D, or combine them. Let your
+interpretation of the music drive the concept. Use the same supplied soundtrack
+throughout, aligned from time zero. No filmed or stock footage, external image or
+video generation services, or other model calls.
+
+Read AGENTS.md, TOOLS.md, spec.json and audio-map.json before building. The audio
+analysis is deliberately explicit about what is measured and what is unknown.
+Do not fabricate lyrics. Plan meaningful musical accents from the available cues.
+Replace the diagnostic scene with your own visual design and purposeful ending.
+
+Save a timecoded storyboard.json, all source code, output/final.mp4,
+output/contact-sheet.png and output/qa.md. Meet spec.json exactly. In qa.md,
+record the frames/timestamps you inspected, technical results and any limitations.
+Make a short proof before the full export, allow at most two repair passes, and
+stop once the deliverables exist. Finish autonomously within the session budget.

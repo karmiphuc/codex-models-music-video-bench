@@ -1,0 +1,7 @@
+{
+  "note": "Schema example only. Replace these placeholders with verified excerpt-relative cues for your chosen song.",
+  "sections": [
+    {"start": 0.0, "end": 8.0, "label": "REPLACE with verified section", "confidence": "human-verified"}
+  ],
+  "lyrics": []
+}

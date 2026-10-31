@@ -1,0 +1,22 @@
+Prepare a code-generated music-video comparison across all coding models offered
+by this Codex installation, at every supported effort, using this repository.
+The project is reusable: the user will choose a song later. No audio is needed
+to finish setup. Do not assume the reference video's song or excerpt length.
+
+Read AGENTS.md and README.md. Run doctor, tests and the no-model smoke check.
+Keep the setup ready for a future audio file. Do not request a soundtrack merely
+to complete preparation and do not substitute synthetic audio for a selected song.
+
+When the user later supplies music, use prepare --audio with optional --title,
+--artist and --song metadata. Use the full track unless an excerpt is requested.
+Verify any supplied lyrics, then discover the live model catalog and freeze a
+plan for that song. Keep audio, prompt and tooling identical across conditions.
+Print the matrix and dry-run commands. Preserve separate prepared tracks and
+experiment folders so another song can use the same workflow later.
+
+This is a preparation handoff. Do not launch the full allowance-consuming matrix
+unless the user requests execution. When execution is requested, use the harness
+and its independent fresh run folders rather than implementing every video in
+one session. Preserve unsupported conditions as failures; do not substitute models.
+Collect reports and anonymous review clips, but do not claim a creative winner
+from metadata checks or model self-scores.

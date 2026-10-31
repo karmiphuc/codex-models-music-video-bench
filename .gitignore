@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+catalog.json
+prepared/
+experiments/
+scratch/
+assets/*
+!assets/README.txt
+MODEL_MATRIX.csv
+VERIFICATION.json
+.env
+.env.*
+!.env.example
